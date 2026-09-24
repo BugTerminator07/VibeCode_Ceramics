@@ -1,16 +1,52 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { 
     Menu, MapPin, BookOpen, Search, 
     X, Grid2X2, ArrowRight, Sparkles
 } from "lucide-react";
 import { FaFacebook, FaTwitter, FaInstagram } from "react-icons/fa";
+import productsData from "../data/products.json";
 
 const Navbar = () => {
+    const router = useRouter();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
+
+    // ESC key listener to close search drawer instantly
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === "Escape") {
+                setIsSearchOpen(false);
+            }
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, []);
+
+    // Live search suggestions filtered from products.json
+    const searchResults = useMemo(() => {
+        if (!searchQuery.trim()) return [];
+        const q = searchQuery.toLowerCase();
+        return productsData.filter(item => 
+            item.title.toLowerCase().includes(q) ||
+            item.category.toLowerCase().includes(q) ||
+            item.material.toLowerCase().includes(q) ||
+            item.description.toLowerCase().includes(q)
+        ).slice(0, 5); // Limit to top 5 live suggestions
+    }, [searchQuery]);
+
+    // Handle Enter key to navigate to catalogue with search query
+    const handleSearchSubmit = (e) => {
+        if (e.key === "Enter" && searchQuery.trim()) {
+            setIsSearchOpen(false);
+            router.push(`/catalogue?search=${encodeURIComponent(searchQuery.trim())}`);
+            setSearchQuery("");
+        }
+    };
 
     return (
         <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-neutral-200/90 text-neutral-900 font-sans shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col relative select-none">
@@ -18,7 +54,7 @@ const Navbar = () => {
             {/* Main Grid Navbar */}
             <div className="w-full flex h-20 items-stretch">
                 
-                {/* Left Section: Menu Toggle + Utility Links (Outer right border removed) */}
+                {/* Left Section: Menu Toggle + Utility Links */}
                 <div className="flex-1 flex h-full">
                     
                     {/* Hamburger Button */}
@@ -57,7 +93,7 @@ const Navbar = () => {
                     </Link>
                 </div>
 
-                {/* Middle Section: Centerpiece Brand Identity (Flanking vertical borders removed) */}
+                {/* Middle Section: Centerpiece Brand Identity */}
                 <div className="flex h-full items-center justify-center px-6 lg:px-12 relative">
                     <Link href="/" className="flex items-center gap-3.5 group">
                         <div className="text-black group-hover:rotate-90 transition-transform duration-700 ease-in-out">
@@ -111,7 +147,7 @@ const Navbar = () => {
                         <Search size={20} strokeWidth={1.75} />
                     </button>
 
-                    {/* United Authentication Pod: Login and Sign Up Kept Together */}
+                    {/* United Authentication Pod: Login and Sign Up */}
                     <div className="hidden sm:flex items-center h-full border-l border-neutral-200 px-4 bg-neutral-50/60 gap-2">
                         <Link 
                             href="/login" 
@@ -132,23 +168,63 @@ const Navbar = () => {
                 </div>
             </div>
 
-            {/* Expandable Search Drawer */}
+            {/* Expandable Search Drawer with Live Suggestions */}
             <div 
                 className={`absolute top-full left-0 w-full bg-white border-b border-neutral-300 shadow-xl overflow-hidden transition-all duration-300 ease-in-out ${
-                    isSearchOpen ? "max-h-28 opacity-100 py-6" : "max-h-0 opacity-0 py-0 border-transparent pointer-events-none"
+                    isSearchOpen ? "max-h-[420px] opacity-100 py-6" : "max-h-0 opacity-0 py-0 border-transparent pointer-events-none"
                 }`}
             >
-                <div className="container mx-auto px-6 max-w-4xl flex items-center gap-4">
-                    <Search size={22} className="text-neutral-400 shrink-0" />
-                    <input 
-                        type="text" 
-                        autoFocus={isSearchOpen}
-                        placeholder="SEARCH SURFACES, PORCELAIN SLABS, OR SHOWROOMS..." 
-                        className="w-full bg-transparent outline-none text-xs sm:text-sm lg:text-base tracking-[0.15em] uppercase font-mono text-black placeholder:text-neutral-400"
-                    />
-                    <span className="hidden md:inline-block text-[10px] font-mono uppercase tracking-widest text-neutral-400 border border-neutral-200 px-2 py-1 rounded bg-neutral-50">
-                        ESC to Close
-                    </span>
+                <div className="container mx-auto px-6 max-w-4xl flex flex-col gap-4">
+                    <div className="flex items-center gap-4">
+                        <Search size={22} className="text-neutral-400 shrink-0" />
+                        <input 
+                            type="text" 
+                            autoFocus={isSearchOpen}
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onKeyDown={handleSearchSubmit}
+                            placeholder="SEARCH SURFACES, PORCELAIN SLABS, OR CATEGORIES (PRESS ENTER)..." 
+                            className="w-full bg-transparent outline-none text-xs sm:text-sm lg:text-base tracking-[0.15em] uppercase font-mono text-black placeholder:text-neutral-400"
+                        />
+                        <span className="hidden md:inline-block text-[10px] font-mono uppercase tracking-widest text-neutral-400 border border-neutral-200 px-2 py-1 rounded bg-neutral-50 whitespace-nowrap">
+                            ESC to Close
+                        </span>
+                    </div>
+
+                    {/* Live Results Dropdown */}
+                    {searchQuery.trim() !== "" && (
+                        <div className="border-t border-neutral-100 pt-4 flex flex-col gap-2">
+                            <span className="text-[10px] font-mono uppercase tracking-widest text-neutral-400">
+                                Instant Matches ({searchResults.length})
+                            </span>
+                            {searchResults.length === 0 ? (
+                                <p className="text-xs font-mono text-neutral-500 py-2">No direct product matches found. Press Enter to search archive.</p>
+                            ) : (
+                                <div className="flex flex-col gap-1 max-h-56 overflow-y-auto">
+                                    {searchResults.map((item) => (
+                                        <Link
+                                            key={item.id}
+                                            href={`/catalogue/${item.id}`}
+                                            onClick={() => {
+                                                setIsSearchOpen(false);
+                                                setSearchQuery("");
+                                            }}
+                                            className="flex items-center justify-between p-2.5 hover:bg-neutral-50 border border-transparent hover:border-neutral-200 transition-all group"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 bg-cover bg-center border border-neutral-200 shrink-0" style={{ backgroundImage: `url(${item.image})` }} />
+                                                <div className="flex flex-col">
+                                                    <span className="text-xs font-bold text-neutral-900 group-hover:text-emerald-800 transition-colors">{item.title}</span>
+                                                    <span className="text-[9px] font-mono text-neutral-400 uppercase">{item.category} • {item.dimensions}</span>
+                                                </div>
+                                            </div>
+                                            <span className="text-xs font-mono font-bold text-neutral-900">${item.price.toFixed(2)}</span>
+                                        </Link>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -208,7 +284,7 @@ const Navbar = () => {
                         </Link>
                     </div>
 
-                    {/* Column 3: Feature Highlight Card */}
+                    {/* Column 3 & 4: Feature Highlight Card */}
                     <div className="lg:col-span-2 flex flex-col justify-between bg-neutral-900/60 border border-neutral-800 p-8 group relative overflow-hidden">
                         <div className="absolute top-0 right-0 p-4 opacity-10 font-mono text-6xl font-black text-white pointer-events-none">
                             26
@@ -233,7 +309,7 @@ const Navbar = () => {
                         </Link>
                     </div>
 
-                    {/* Column 4: Quick Dossier & Socials */}
+                    {/* Column 5: Quick Dossier & Socials */}
                     <div className="flex flex-col justify-between gap-8">
                         <div className="flex flex-col gap-3">
                             <div className="flex items-center gap-2 border-b border-neutral-800 pb-3 mb-2">
@@ -253,7 +329,7 @@ const Navbar = () => {
                             </div>
                         </div>
                     </div>
-                    
+
                 </div>
             </div>
 

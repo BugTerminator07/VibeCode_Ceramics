@@ -1,11 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { format } from "date-fns";
 import { Sparkles, Radio } from "lucide-react";
+import productsData from "../data/products.json";
 
 const MarqueeTicker = () => {
     const [currentTime, setCurrentTime] = useState(null);
+    const [isPaused, setIsPaused] = useState(false);
 
     // Initialize and run live ticker after mount to prevent SSR hydration mismatch
     useEffect(() => {
@@ -16,21 +19,18 @@ const MarqueeTicker = () => {
         return () => clearInterval(timer);
     }, []);
 
-    const latestItems = [
-        "✨ NEW SLAB ARRIVAL: Obsidian Monolith v2 (1600x3200mm)",
-        "🏛️ MILAN DESIGN WEEK: Immersive Pavilion Officially Open",
-        "🏆 CALACATTA GOLD: Premium Vein Batch Restocked in European Foundries",
-        "💧 ZERO-WATER WASTE: 100% Closed-Loop Hydration Milestone Achieved",
-        "🔬 TOKYO LAB: Sub-Millimeter Laser Calibration Workshop Active",
-        "🌐 DUBAI FLAGSHIP: 22,000 SQ FT Showroom Now Welcoming VIP Architects"
-    ];
+    // Generate real ticker items dynamically from your products data
+    const tickerProducts = productsData.slice(0, 8).map(item => ({
+        id: item.id,
+        text: `✨ LIVE SPEC // ${item.title.toUpperCase()} (${item.dimensions}) — $${item.price.toFixed(2)}/m² — [VIEW DOSSIER]`
+    }));
 
     // Analog clock angle math
     const seconds = currentTime ? currentTime.getSeconds() : 0;
     const minutes = currentTime ? currentTime.getMinutes() : 0;
     const hours = currentTime ? currentTime.getHours() % 12 : 0;
 
-    const secondDegrees = seconds * 6; // 360° / 60
+    const secondDegrees = seconds * 6; 
     const minuteDegrees = minutes * 6 + seconds * 0.1;
     const hourDegrees = hours * 30 + minutes * 0.5;
 
@@ -39,7 +39,7 @@ const MarqueeTicker = () => {
     const formattedTime = currentTime ? format(currentTime, "hh:mm:ss a") : "--:--:--";
 
     return (
-        <div className="w-full  bg-[#04241B] border-y border-amber-500/40 text-amber-100 font-mono text-xs overflow-hidden flex items-center h-16 relative z-40 top-0 select-none shadow-[0_0_30px_rgba(4,36,27,0.95)]">
+        <div className="w-full bg-[#04241B] border-y border-amber-500/40 text-amber-100 font-mono text-xs overflow-hidden flex items-center h-16 relative z-40 top-0 select-none shadow-[0_0_30px_rgba(4,36,27,0.95)]">
             
             {/* Left Static Badge with Pulsing Live Indicator */}
             <div className="bg-[#062D20] border-r border-amber-500/30 px-6 h-full flex items-center gap-3 shrink-0 z-10">
@@ -52,24 +52,36 @@ const MarqueeTicker = () => {
                 </span>
             </div>
 
-            {/* Native HTML Marquee with Adjustable Speed */}
-            <div className="flex-1 overflow-hidden h-full flex items-center px-4">
-                {/* Adjust scrollamount (e.g. 10 to 20) to change scroll speed */}
+            {/* Native HTML Marquee with Pause on Hover & Clickable Links */}
+            <div 
+                className="flex-1 overflow-hidden h-full flex items-center px-4"
+                onMouseEnter={() => setIsPaused(true)}
+                onMouseLeave={() => setIsPaused(false)}
+            >
                 <marquee 
-                    scrollamount="7"
+                    scrollamount="6"
                     behavior="scroll" 
                     direction="left"
-                    className="w-full h-full flex items-center"
+                    truespeed="true"
+                    className="w-full h-full flex items-center cursor-pointer"
+                    style={{ animationPlayState: isPaused ? 'paused' : 'running' }}
                 >
-                    <div className="flex items-center gap-12 py-3">
-                        {latestItems.map((item, index) => (
-                            <span key={index} className="inline-flex items-center gap-3 shrink-0">
-                                <Sparkles size={14} className="text-amber-400" />
-                                <span className="uppercase tracking-wider text-xs text-amber-100 font-semibold">
-                                    {item}
+                    <div 
+                        className="flex items-center gap-12 py-3"
+                        style={{ animationPlayState: isPaused ? 'paused' : 'running' }}
+                    >
+                        {tickerProducts.map((prod) => (
+                            <Link 
+                                key={prod.id} 
+                                href={`/catalogue/${prod.id}`}
+                                className="inline-flex items-center gap-3 shrink-0 group hover:opacity-15 transition-opacity"
+                            >
+                                <Sparkles size={14} className="text-amber-400 group-hover:scale-125 transition-transform" />
+                                <span className="uppercase tracking-wider text-xs text-amber-100 font-semibold group-hover:text-amber-300 transition-colors">
+                                    {prod.text}
                                 </span>
                                 <span className="text-emerald-700 ml-8">//</span>
-                            </span>
+                            </Link>
                         ))}
                     </div>
                 </marquee>

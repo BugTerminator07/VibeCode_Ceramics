@@ -1,15 +1,16 @@
+import React from "react";
 import Link from "next/link";
 import { Grid2X2, ArrowRight, MapPin, Phone, Mail } from "lucide-react";
 import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin } from "react-icons/fa";
 
 const Footer = () => {
-    // Defined link objects with proper href routing
+    // Defined link objects with proper href routing and URL parameters
     const exploreLinks = [
-        { name: 'New Arrivals', href: '/collections/new-arrivals' },
-        { name: 'Porcelain Tiles', href: '/collections/porcelain-tiles' },
-        { name: 'Ceramic Slabs', href: '/collections/ceramic-slabs' },
-        { name: 'Bathroom Collection', href: '/collections/bathroom' },
-        { name: 'Outdoor Pavers', href: '/collections/outdoor' }
+        { name: 'New Arrivals', href: '/catalogue?category=new arrival' },
+        { name: 'Porcelain Tiles', href: '/catalogue?category=porcelain tiles' },
+        { name: 'Ceramic Slabs', href: '/catalogue?category=ceramic slabs' },
+        { name: 'Bathroom Collection', href: '/catalogue?category=bathroom collection' },
+        { name: 'Outdoor Pavers', href: '/catalogue?category=outdoor pavers' }
     ];
 
     const companyLinks = [
