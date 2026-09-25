@@ -323,7 +323,7 @@ const Navbar = () => {
                         <div className="pt-6 border-t border-neutral-900">
                             <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-500 block mb-3">Networks</span>
                             <div className="flex gap-2.5">
-                                <a href="#" className="p-2.5 border border-neutral-800 hover:border-white hover:text-white transition-colors text-neutral-400"><FaFacebook size={14} /></a>
+                                <a href="https://www.facebook.com/tasdid.zubier" className="p-2.5 border border-neutral-800 hover:border-white hover:text-white transition-colors text-neutral-400"><FaFacebook size={14} /></a>
                                 <a href="#" className="p-2.5 border border-neutral-800 hover:border-white hover:text-white transition-colors text-neutral-400"><FaTwitter size={14} /></a>
                                 <a href="#" className="p-2.5 border border-neutral-800 hover:border-white hover:text-white transition-colors text-neutral-400"><FaInstagram size={14} /></a>
                             </div>

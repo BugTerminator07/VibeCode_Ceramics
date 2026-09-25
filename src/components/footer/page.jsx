@@ -71,7 +71,7 @@ const Footer = () => {
                             Redefining spaces with premium architectural surfaces. Crafted for elegance, engineered for durability.
                         </p>
                         <div className="flex gap-4">
-                            <Link href="https://facebook.com/vibecoderceramics" target="_blank" className="text-neutral-400 hover:text-white transition-colors"><FaFacebook size={20} /></Link>
+                            <Link href="https://www.facebook.com/tasdid.zubier" target="_blank" className="text-neutral-400 hover:text-white transition-colors"><FaFacebook size={20} /></Link>
                             <Link href="https://twitter.com/vibecoderceramics" target="_blank" className="text-neutral-400 hover:text-white transition-colors"><FaTwitter size={20} /></Link>
                             <Link href="https://instagram.com/vibecoderceramics" target="_blank" className="text-neutral-400 hover:text-white transition-colors"><FaInstagram size={20} /></Link>
                             <Link href="https://linkedin.com/company/vibecoderceramics" target="_blank" className="text-neutral-400 hover:text-white transition-colors"><FaLinkedin size={20} /></Link>
@@ -115,11 +115,11 @@ const Footer = () => {
                         </div>
                         <div className="flex items-center gap-4 text-neutral-400">
                             <Phone size={20} className="shrink-0 text-white" />
-                            <span className="text-sm">+1 (800) 555-TILE</span>
+                            <span className="text-sm">+8801576409621</span>
                         </div>
                         <div className="flex items-center gap-4 text-neutral-400">
                             <Mail size={20} className="shrink-0 text-white" />
-                            <span className="text-sm">hello@vibecoderceramics.com</span>
+                            <span className="text-sm">republicofgamerssakin@gmail.com</span>
                         </div>
                     </div>
                 </div>
