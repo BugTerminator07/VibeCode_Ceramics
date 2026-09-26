@@ -223,9 +223,9 @@ const ProductDetailPage = () => {
                                         <><Download size={14} /> Tearsheet</>
                                     )}
                                 </button>
-                                <button className="px-8 py-4 bg-neutral-950 text-white text-[10px] font-mono font-bold uppercase tracking-[0.2em] hover:bg-emerald-900 transition-colors shadow-lg flex items-center justify-center gap-2">
+                                <Link href={'/store-locator'} className="px-8 py-4 bg-neutral-950 text-white text-[10px] font-mono font-bold uppercase tracking-[0.2em] hover:bg-emerald-900 transition-colors shadow-lg flex items-center justify-center gap-2">
                                     Request Sample <MoveRight size={14} />
-                                </button>
+                                </Link>
                             </div>
                         </div>
 
