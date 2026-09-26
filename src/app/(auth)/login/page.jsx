@@ -238,7 +238,7 @@ export default function LoginPage() {
                 <span className="text-neutral-500 font-medium cursor-pointer">Remember me</span>
               </label>
               <Link
-                href="/forgot-password"
+                href="/login"
                 className="font-bold text-black uppercase tracking-wider hover:underline underline-offset-4"
               >
                 Forgot password?
