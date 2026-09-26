@@ -2,12 +2,17 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { Grid2X2, ArrowRight, Eye, EyeOff, User, Mail, Lock } from "lucide-react";
-import { FaGithub, FaFacebook, FaGoogle } from "react-icons/fa";
+import { Grid2X2, ArrowRight, Eye, EyeOff, User, Mail, Lock, AlertCircle } from "lucide-react";
+import { FaGithub, FaGoogle } from "react-icons/fa";
+import { FaCloudflare } from "react-icons/fa6"; // Added Cloudflare icon
+import { authClient } from "@/lib/auth-client";
 
 export default function SignUpPage() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
+  const [generalError, setGeneralError] = useState(""); // For network/server errors
 
   const BACKGROUND_IMAGE =
     "https://images.unsplash.com/photo-1600607688969-a5bfcd646154?q=80&w=2000&auto=format&fit=crop";
@@ -15,14 +20,76 @@ export default function SignUpPage() {
   const {
     register,
     handleSubmit,
-    formState: { errors }
+    setError,
+    formState: { errors, isSubmitting } 
   } = useForm({
-    mode: "onTouched"
+    mode: "onChange", // Instantly clears errors when typing/checking
+    defaultValues: {
+      username: "",
+      email: "",
+      password: "",
+      terms: false, // Explicitly defines this as a boolean for the checkbox
+    }
   });
 
-  const handleSignUpFunc = (data) => {
-    console.log("Registration data submitted:", data);
+  const handleSignUpFunc = async (data) => {
+    setGeneralError(""); // Clear previous errors
+    const { email, username, password } = data;
+
+    try {
+      const { data: res, error } = await authClient.signUp.email({
+        name: username,
+        email: email,
+        password: password,
+        callbackURL: "/",
+      });
+
+      // Handle Authentication Errors
+      if (error) {
+        const errMsg = error.message?.toLowerCase() || "";
+        
+        // Check if the error indicates the user already exists
+        if (errMsg.includes("exist") || errMsg.includes("already") || error.status === 409) {
+          setError("email", { 
+            type: "server", 
+            message: "This email is already registered. Please log in." 
+          });
+        } else {
+          // Catch-all for other auth errors
+          setGeneralError(error.message || "Sign up failed. Please try again.");
+        }
+        return;
+      }
+
+      // Success: Redirect user to the homepage or dashboard
+      if (res) {
+        router.push("/");
+      }
+
+    } catch (err) {
+      // Fallback for network failures or unexpected crashes
+      setGeneralError("A network error occurred. Please check your connection.");
+    }
   };
+
+  // Social Sign In Handlers
+  const handleGoogleSignIn = async () => {
+    const data = await authClient.signIn.social({
+      provider: "google",
+    });
+  }
+
+  const handleGithubSignIn = async () => {
+    const data = await authClient.signIn.social({
+      provider: "github",
+    });
+  }
+
+  const handleCloudflareSignIn = async () => {
+    const data = await authClient.signIn.social({
+      provider: "cloudflare",
+    });
+  }
 
   return (
     <div className="min-h-screen flex w-full font-sans bg-white text-black overflow-hidden">
@@ -83,21 +150,24 @@ export default function SignUpPage() {
           <div className="grid grid-cols-3 gap-4 mb-8">
             <button
               type="button"
+              onClick={handleGoogleSignIn}
               className="flex items-center justify-center py-3 border border-neutral-300 hover:border-black hover:bg-black hover:text-white transition-all group"
             >
               <FaGoogle size={18} className="group-hover:scale-110 transition-transform" />
             </button>
             <button
               type="button"
+              onClick={handleGithubSignIn}
               className="flex items-center justify-center py-3 border border-neutral-300 hover:border-black hover:bg-black hover:text-white transition-all group"
             >
               <FaGithub size={18} className="group-hover:scale-110 transition-transform" />
             </button>
             <button
               type="button"
+              onClick={handleCloudflareSignIn}
               className="flex items-center justify-center py-3 border border-neutral-300 hover:border-black hover:bg-black hover:text-white transition-all group"
             >
-              <FaFacebook size={18} className="group-hover:scale-110 transition-transform" />
+              <FaCloudflare size={18} className="group-hover:scale-110 transition-transform" />
             </button>
           </div>
 
@@ -108,8 +178,17 @@ export default function SignUpPage() {
             </span>
           </div>
 
+          {/* General Server Error Display */}
+          {generalError && (
+            <div className="mb-6 p-3 bg-red-50 text-red-600 text-xs flex items-center gap-2 border border-red-100">
+              <AlertCircle size={14} />
+              {generalError}
+            </div>
+          )}
+
           {/* Form */}
           <form className="space-y-6" onSubmit={handleSubmit(handleSignUpFunc)} noValidate>
+            
             {/* Username Input */}
             <div>
               <div className="relative border-b-2 border-neutral-200 focus-within:border-black transition-colors group">
@@ -118,6 +197,7 @@ export default function SignUpPage() {
                 </label>
                 <input
                   type="text"
+                  disabled={isSubmitting}
                   {...register("username", {
                     required: "Username is required",
                     minLength: {
@@ -125,7 +205,7 @@ export default function SignUpPage() {
                       message: "Username must be at least 3 characters"
                     }
                   })}
-                  className="w-full bg-transparent outline-none py-2 text-sm placeholder:text-neutral-300"
+                  className="w-full bg-transparent outline-none py-2 text-sm placeholder:text-neutral-300 disabled:opacity-50"
                   placeholder="architect_01"
                 />
               </div>
@@ -142,6 +222,7 @@ export default function SignUpPage() {
                 </label>
                 <input
                   type="email"
+                  disabled={isSubmitting}
                   {...register("email", {
                     required: "Email is required",
                     pattern: {
@@ -149,7 +230,7 @@ export default function SignUpPage() {
                       message: "Please enter a valid email address"
                     }
                   })}
-                  className="w-full bg-transparent outline-none py-2 text-sm placeholder:text-neutral-300"
+                  className="w-full bg-transparent outline-none py-2 text-sm placeholder:text-neutral-300 disabled:opacity-50"
                   placeholder="hello@example.com"
                 />
               </div>
@@ -167,6 +248,7 @@ export default function SignUpPage() {
                 <div className="flex items-center">
                   <input
                     type={showPassword ? "text" : "password"}
+                    disabled={isSubmitting}
                     {...register("password", {
                       required: "Password is required",
                       minLength: {
@@ -184,7 +266,7 @@ export default function SignUpPage() {
                           /\d/.test(val) || "Password must include at least one number"
                       }
                     })}
-                    className="w-full bg-transparent outline-none py-2 text-sm placeholder:text-neutral-300"
+                    className="w-full bg-transparent outline-none py-2 text-sm placeholder:text-neutral-300 disabled:opacity-50"
                     placeholder="••••••••"
                   />
                   <button
@@ -207,22 +289,23 @@ export default function SignUpPage() {
                 <input
                   type="checkbox"
                   id="terms"
+                  disabled={isSubmitting}
                   {...register("terms", {
-                    required: "You must accept the terms and conditions to proceed"
+                    validate: (value) => value === true || "You must accept the terms and conditions to proceed"
                   })}
-                  className="mt-1 w-4 h-4 rounded-none border-neutral-300 text-black focus:ring-black accent-black"
+                  className="mt-1 w-4 h-4 shrink-0 rounded-none border-neutral-300 text-black focus:ring-black accent-black disabled:opacity-50 cursor-pointer"
                 />
-                <label htmlFor="terms" className="text-xs text-neutral-500 leading-relaxed">
+                <label htmlFor="terms" className="text-xs text-neutral-500 leading-relaxed cursor-pointer">
                   I agree to Vibecoder Ceramics' {" "}
                   <Link
-                    href="/terms"
+                    href="/terms-of-service"
                     className="text-black underline underline-offset-2 hover:text-neutral-500 transition-colors"
                   >
                     Terms of Service
                   </Link>{" "}
                   and{" "}
                   <Link
-                    href="/privacy"
+                    href="/privacy-policy"
                     className="text-black underline underline-offset-2 hover:text-neutral-500 transition-colors"
                   >
                     Privacy Policy
@@ -238,10 +321,13 @@ export default function SignUpPage() {
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full bg-black text-white p-4 flex items-center justify-center gap-3 hover:bg-neutral-800 transition-colors group mt-4"
+              disabled={isSubmitting}
+              className="w-full bg-black text-white p-4 flex items-center justify-center gap-3 hover:bg-neutral-800 transition-colors group mt-4 disabled:bg-neutral-400 disabled:cursor-not-allowed"
             >
-              <span className="text-xs font-bold uppercase tracking-[0.2em]">Join Now</span>
-              <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />
+              <span className="text-xs font-bold uppercase tracking-[0.2em]">
+                {isSubmitting ? "Processing..." : "Join Now"}
+              </span>
+              {!isSubmitting && <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />}
             </button>
           </form>
 

@@ -5,27 +5,42 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { 
     Menu, MapPin, BookOpen, Search, 
-    X, Grid2X2, ArrowRight, Sparkles
+    X, Grid2X2, ArrowRight, Sparkles, User, LogOut, ChevronDown
 } from "lucide-react";
 import { FaFacebook, FaTwitter, FaInstagram } from "react-icons/fa";
 import productsData from "../data/products.json";
+import { authClient } from "@/lib/auth-client";
 
 const Navbar = () => {
     const router = useRouter();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
 
-    // ESC key listener to close search drawer instantly
+    // ESC key listener to close search & profile drawers instantly
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (e.key === "Escape") {
                 setIsSearchOpen(false);
+                setIsProfileOpen(false);
             }
         };
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, []);
+
+    // Fetch the authenticated user session
+    const { data: session } = authClient.useSession();
+    const user = session?.user;
+
+    // Handle user logout
+    const handleSignOut = async () => {
+        await authClient.signOut();
+        setIsProfileOpen(false);
+        router.push('/');
+        router.refresh();
+    };
 
     // Live search suggestions filtered from products.json
     const searchResults = useMemo(() => {
@@ -51,6 +66,17 @@ const Navbar = () => {
     return (
         <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-neutral-200/90 text-neutral-900 font-sans shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col relative select-none">
             
+            {/* Custom Shimmer Animation for Logged In User */}
+            <style jsx global>{`
+                @keyframes text-shimmer {
+                    0% { background-position: 200% center; }
+                    100% { background-position: -200% center; }
+                }
+                .animate-text-shimmer {
+                    animation: text-shimmer 4s linear infinite;
+                }
+            `}</style>
+
             {/* Main Grid Navbar */}
             <div className="w-full flex h-20 items-stretch">
                 
@@ -62,6 +88,7 @@ const Navbar = () => {
                         onClick={() => {
                             setIsMenuOpen(!isMenuOpen);
                             setIsSearchOpen(false);
+                            setIsProfileOpen(false);
                         }}
                         className="h-full px-6 lg:px-8 flex items-center justify-center border-r border-neutral-200 hover:bg-neutral-900 hover:text-white transition-colors duration-200 group relative"
                         aria-label="Toggle Navigation Menu"
@@ -110,7 +137,7 @@ const Navbar = () => {
                     </Link>
                 </div>
 
-                {/* Right Section: Tools + Search + Paired Login & Signup */}
+                {/* Right Section: Tools + Search + Auth */}
                 <div className="flex-1 flex h-full justify-end items-center">
                     
                     {/* Interactive 3D Room Visualizer Badge */}
@@ -138,6 +165,7 @@ const Navbar = () => {
                         onClick={() => {
                             setIsSearchOpen(!isSearchOpen);
                             setIsMenuOpen(false);
+                            setIsProfileOpen(false);
                         }}
                         className={`h-full px-5 lg:px-7 flex items-center justify-center border-l border-neutral-200 transition-colors ${
                             isSearchOpen ? "bg-neutral-900 text-white" : "hover:bg-neutral-100 text-neutral-700"
@@ -147,22 +175,76 @@ const Navbar = () => {
                         <Search size={20} strokeWidth={1.75} />
                     </button>
 
-                    {/* United Authentication Pod: Login and Sign Up */}
-                    <div className="hidden sm:flex items-center h-full border-l border-neutral-200 px-4 bg-neutral-50/60 gap-2">
-                        <Link 
-                            href="/login" 
-                            className="px-4 py-2.5 text-xs uppercase font-bold tracking-[0.18em] text-neutral-700 hover:text-black hover:bg-white rounded border border-transparent hover:border-neutral-300 transition-all"
-                        >
-                            Log In
-                        </Link>
+                    {/* United Authentication Pod: Logged In vs Logged Out */}
+                    <div className="hidden sm:flex items-center h-full border-l border-neutral-200">
+                        {user ? (
+                            // LOGGED IN STATE
+                            <div className="relative h-full">
+                                <button 
+                                    onClick={() => setIsProfileOpen(!isProfileOpen)}
+                                    className="flex items-center h-full px-6 gap-3.5 group hover:bg-neutral-50 transition-all bg-white relative z-10 border-none outline-none"
+                                >
+                                    {/* Architectural Blueprint Avatar */}
+                                    <div className="w-9 h-9 bg-neutral-950 flex items-center justify-center border border-neutral-800 shadow-sm relative overflow-hidden group-hover:shadow-md transition-all duration-300">
+                                        <div className="absolute inset-0 opacity-20 bg-[linear-gradient(to_right,#fff_1px,transparent_1px),linear-gradient(to_bottom,#fff_1px,transparent_1px)] bg-[size:4px_4px]"></div>
+                                        <span className="text-white text-xs font-mono font-bold uppercase relative z-10">
+                                            {(user.name || user.email || "V").charAt(0)}
+                                        </span>
+                                    </div>
+                                    
+                                    {/* Text Info with Premium Shimmer Effect */}
+                                    <div className="flex flex-col items-start justify-center text-left hidden xl:flex">
+                                        <span 
+                                            className="text-xs uppercase font-black tracking-[0.18em] animate-text-shimmer bg-[length:200%_auto] text-transparent bg-clip-text"
+                                            style={{ backgroundImage: 'linear-gradient(to right, #047857 20%, #34d399 40%, #34d399 60%, #047857 80%)' }}
+                                        >
+                                            {user.name || user.email?.split('@')[0]}
+                                        </span>
+                                        <span className="text-[8px] uppercase tracking-[0.2em] text-neutral-400 font-mono mt-0.5">
+                                            Verified Studio
+                                        </span>
+                                    </div>
 
-                        <Link 
-                            href="/signup" 
-                            className="px-5 py-2.5 bg-black text-white hover:bg-neutral-800 transition-all text-xs uppercase font-bold tracking-[0.18em] rounded shadow-sm flex items-center gap-2 group"
-                        >
-                            <span>Sign Up</span>
-                            <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
-                        </Link>
+                                    {/* Dropdown Indicator */}
+                                    <ChevronDown size={14} strokeWidth={2} className={`text-neutral-400 transition-transform duration-300 ${isProfileOpen ? "rotate-180" : ""}`} />
+                                </button>
+
+                                {/* Profile Dropdown Menu */}
+                                <div className={`absolute top-full right-0 w-56 bg-white border border-neutral-200 shadow-[0_10px_40px_rgba(0,0,0,0.08)] transition-all duration-200 ease-out origin-top-right ${isProfileOpen ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"}`}>
+                                    <div className="p-5 border-b border-neutral-100 bg-neutral-50/50">
+                                        <p className="text-[9px] uppercase tracking-widest text-neutral-400 font-bold mb-1">Studio Access</p>
+                                        <p className="text-xs font-mono text-black truncate">{user.email}</p>
+                                    </div>
+                                    <div className="flex flex-col py-2">
+                                        <Link href="/profile" onClick={() => setIsProfileOpen(false)} className="px-5 py-3 text-xs font-bold uppercase tracking-widest hover:bg-neutral-50 transition-colors flex items-center gap-3 text-neutral-700">
+                                            <User size={14} className="text-emerald-600" /> Studio Dashboard
+                                        </Link>
+                                        {/* Explicit Log Out Button */}
+                                        <button onClick={handleSignOut} className="px-5 py-3 text-xs font-bold uppercase tracking-widest hover:bg-red-50 hover:text-red-600 transition-colors flex items-center gap-3 text-neutral-700 text-left w-full group">
+                                            <LogOut size={14} className="text-neutral-400 group-hover:text-red-500 transition-colors" /> Log Out
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            // LOGGED OUT STATE (Buttons)
+                            <div className="flex items-center h-full px-4 bg-neutral-50/60 gap-2">
+                                <Link 
+                                    href="/login" 
+                                    className="px-4 py-2.5 text-xs uppercase font-bold tracking-[0.18em] text-neutral-700 hover:text-black hover:bg-white rounded border border-transparent hover:border-neutral-300 transition-all"
+                                >
+                                    Log In
+                                </Link>
+
+                                <Link 
+                                    href="/signup" 
+                                    className="px-5 py-2.5 bg-black text-white hover:bg-neutral-800 transition-all text-xs uppercase font-bold tracking-[0.18em] rounded shadow-sm flex items-center gap-2 group"
+                                >
+                                    <span>Sign Up</span>
+                                    <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
+                                </Link>
+                            </div>
+                        )}
                     </div>
 
                 </div>

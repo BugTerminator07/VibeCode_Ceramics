@@ -1,14 +1,20 @@
 "use client";
-import { useForm } from "react-hook-form";
+
 import React, { useState } from "react";
 import Link from "next/link";
-import { Grid2X2, ArrowRight, Eye, EyeOff, Mail, Lock, Sparkles } from "lucide-react";
-import { FaGithub, FaFacebook, FaGoogle } from "react-icons/fa";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { Grid2X2, ArrowRight, Eye, EyeOff, Mail, Lock, Sparkles, AlertCircle } from "lucide-react";
+import { FaGithub, FaGoogle } from "react-icons/fa";
+import { FaCloudflare } from "react-icons/fa6"; // Added Cloudflare icon
+import { authClient } from "@/lib/auth-client";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
+  const [generalError, setGeneralError] = useState(""); // For network/server errors
 
-  // New high-end architectural surface finishes
+  // High-end architectural surface finishes
   const textures = [
     {
       name: "Polished Onyx",
@@ -29,18 +35,78 @@ export default function LoginPage() {
 
   const [activeTexture, setActiveTexture] = useState(textures[0]);
 
-  // Destructure errors from formState
   const {
     register,
     handleSubmit,
-    formState: { errors }
+    setError,
+    formState: { errors, isSubmitting }
   } = useForm({
-    mode: "onTouched" // Validates as soon as the user finishes typing and leaves the field
+    mode: "onChange", // Instantly clears errors when typing
+    defaultValues: {
+      email: "",
+      password: "",
+      remember: false, // Default state for the remember me checkbox
+    }
   });
 
-  const handleLogInFunc = (data) => {
-    console.log("Form submitted successfully:", data);
+  const handleLogInFunc = async (data) => {
+    setGeneralError(""); // Clear previous errors
+    const { email, password, remember } = data; // Extract 'remember' from form data
+
+    try {
+      // Pass rememberMe directly to Better Auth
+      const { data: res, error } = await authClient.signIn.email({
+        email: email,
+        password: password,
+        rememberMe: remember, 
+      });
+
+      // Handle Authentication Errors
+      if (error) {
+        const errMsg = error.message?.toLowerCase() || "";
+        
+        // Catch invalid credentials
+        if (errMsg.includes("invalid") || errMsg.includes("wrong") || errMsg.includes("credential")) {
+          setError("email", { type: "server", message: "Invalid email or password." });
+          setError("password", { type: "server", message: "Invalid email or password." });
+        } else if (errMsg.includes("not found") || errMsg.includes("no user")) {
+          setError("email", { type: "server", message: "Account not found. Please create an account." });
+        } else {
+          // Catch-all for other auth errors
+          setGeneralError(error.message || "Login failed. Please try again.");
+        }
+        return;
+      }
+
+      // Success: Redirect user to the homepage or dashboard
+      if (res) {
+        router.push("/");
+      }
+
+    } catch (err) {
+      // Fallback for network failures or unexpected crashes
+      setGeneralError("A network error occurred. Please check your connection.");
+    }
   };
+  
+  const handleGoogleSignIn = async () => {
+    const data = await authClient.signIn.social({
+      provider: "google",
+    });
+  }
+
+  const handleGithubSignIn = async () => {
+    const data = await authClient.signIn.social({
+      provider: "github",
+    });
+  }
+
+  // New Cloudflare Sign In Handler
+  const handleCloudflareSignIn = async () => {
+    const data = await authClient.signIn.social({
+      provider: "cloudflare",
+    });
+  }
 
   return (
     <div className="min-h-screen flex w-full font-sans bg-white text-black overflow-hidden">
@@ -49,7 +115,7 @@ export default function LoginPage() {
         {/* Mobile Logo */}
         <Link href="/" className="absolute top-8 left-8 lg:hidden flex items-center gap-3 text-black">
           <Grid2X2 size={24} strokeWidth={1.5} />
-          <span className="text-sm font-bold tracking-[0.2em] uppercase">VibeCoder</span>
+          <span className="text-sm font-bold tracking-[0.2em] uppercase">Vibecoder</span>
         </Link>
 
         <div className="w-full max-w-md">
@@ -60,14 +126,26 @@ export default function LoginPage() {
 
           {/* Social Auth Grid */}
           <div className="grid grid-cols-3 gap-4 mb-6">
-            <button type="button" className="flex items-center justify-center py-3 border border-neutral-300 hover:border-black hover:bg-black hover:text-white transition-all group">
+            <button 
+              type="button"
+              onClick={handleGoogleSignIn}
+              className="flex items-center justify-center py-3 border border-neutral-300 hover:border-black hover:bg-black hover:text-white transition-all group"
+            >
               <FaGoogle size={18} className="group-hover:scale-110 transition-transform" />
             </button>
-            <button type="button" className="flex items-center justify-center py-3 border border-neutral-300 hover:border-black hover:bg-black hover:text-white transition-all group">
+            <button 
+              type="button"
+              onClick={handleGithubSignIn}
+              className="flex items-center justify-center py-3 border border-neutral-300 hover:border-black hover:bg-black hover:text-white transition-all group"
+            >
               <FaGithub size={18} className="group-hover:scale-110 transition-transform" />
             </button>
-            <button type="button" className="flex items-center justify-center py-3 border border-neutral-300 hover:border-black hover:bg-black hover:text-white transition-all group">
-              <FaFacebook size={18} className="group-hover:scale-110 transition-transform" />
+            <button 
+              type="button"
+              onClick={handleCloudflareSignIn}
+              className="flex items-center justify-center py-3 border border-neutral-300 hover:border-black hover:bg-black hover:text-white transition-all group"
+            >
+              <FaCloudflare size={18} className="group-hover:scale-110 transition-transform" />
             </button>
           </div>
 
@@ -78,8 +156,17 @@ export default function LoginPage() {
             </span>
           </div>
 
+          {/* General Server Error Display */}
+          {generalError && (
+            <div className="mb-6 p-3 bg-red-50 text-red-600 text-xs flex items-center gap-2 border border-red-100">
+              <AlertCircle size={14} />
+              {generalError}
+            </div>
+          )}
+
           {/* The Form */}
           <form className="space-y-5" onSubmit={handleSubmit(handleLogInFunc)} noValidate>
+            
             {/* Email Input */}
             <div>
               <div className="relative border-b-2 border-neutral-200 focus-within:border-black transition-colors group">
@@ -88,6 +175,7 @@ export default function LoginPage() {
                 </label>
                 <input
                   type="email"
+                  disabled={isSubmitting}
                   {...register("email", {
                     required: "Email is required",
                     pattern: {
@@ -95,7 +183,7 @@ export default function LoginPage() {
                       message: "Please enter a valid email address"
                     }
                   })}
-                  className="w-full bg-transparent outline-none py-2 text-sm placeholder:text-neutral-300"
+                  className="w-full bg-transparent outline-none py-2 text-sm placeholder:text-neutral-300 disabled:opacity-50"
                   placeholder="hello@example.com"
                 />
               </div>
@@ -113,24 +201,15 @@ export default function LoginPage() {
                 <div className="flex items-center">
                   <input
                     type={showPassword ? "text" : "password"}
+                    disabled={isSubmitting}
                     {...register("password", {
                       required: "Password is required",
                       minLength: {
                         value: 8,
                         message: "Password must be at least 8 characters long"
-                      },
-                      maxLength: {
-                        value: 14,
-                        message: "Password cannot exceed 14 characters"
-                      },
-                      validate: {
-                        hasUpper: (val) =>
-                          /[A-Z]/.test(val) || "Password must include at least one capital letter",
-                        hasNumber: (val) =>
-                          /\d/.test(val) || "Password must include at least one number"
                       }
                     })}
-                    className="w-full bg-transparent outline-none py-2 text-sm placeholder:text-neutral-300"
+                    className="w-full bg-transparent outline-none py-2 text-sm placeholder:text-neutral-300 disabled:opacity-50"
                     placeholder="••••••••"
                   />
                   <button
@@ -152,9 +231,11 @@ export default function LoginPage() {
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
-                  className="w-4 h-4 rounded-none border-neutral-300 accent-black"
+                  disabled={isSubmitting}
+                  {...register("remember")}
+                  className="w-4 h-4 shrink-0 rounded-none border-neutral-300 text-black focus:ring-black accent-black disabled:opacity-50 cursor-pointer"
                 />
-                <span className="text-neutral-500 font-medium">Remember me</span>
+                <span className="text-neutral-500 font-medium cursor-pointer">Remember me</span>
               </label>
               <Link
                 href="/forgot-password"
@@ -167,10 +248,13 @@ export default function LoginPage() {
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full bg-black text-white p-4 flex items-center justify-center gap-3 hover:bg-neutral-800 transition-colors group mt-2"
+              disabled={isSubmitting}
+              className="w-full bg-black text-white p-4 flex items-center justify-center gap-3 hover:bg-neutral-800 transition-colors group mt-2 disabled:bg-neutral-400 disabled:cursor-not-allowed"
             >
-              <span className="text-xs font-bold uppercase tracking-[0.2em]">Log In</span>
-              <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />
+              <span className="text-xs font-bold uppercase tracking-[0.2em]">
+                {isSubmitting ? "Authenticating..." : "Log In"}
+              </span>
+              {!isSubmitting && <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />}
             </button>
           </form>
 
